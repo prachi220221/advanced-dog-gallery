@@ -1,0 +1,53 @@
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+.card {
+  border: 1px solid #ccc;
+  padding: 10px;
+  width: 200px;
+  text-align: center;
+}
+img {
+  width: 100%;
+  height: auto;
+}
+body.dark-mode {
+    background-color: #121212;
+    color: white;
+}
+.zoomable {
+    transition: transform 0.3s;
+    cursor: zoom-in;
+}
+
+.zoomable:active {
+    transform: scale(1.5);
+    cursor: zoom-out;
+}
+.recent-card {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 5px;
+    min-width: 150px;
+    transition: transform 0.3s ease;
+}
+.recent-card:hover {
+    transform: scale(1.05);
+}
+.description p {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.7;
+}
+
+}
+.page-title {
+    background-color: #a0c0e0;
+    color: white;
+    padding: 15px 20px;
+    text-align: center;
+    border-radius: 8px;
+    margin: 20px 0;
+}

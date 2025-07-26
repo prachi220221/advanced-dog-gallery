@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error</title>
+    <style>
+        body { text-align: center; padding: 50px; font-family: sans-serif; }
+        .error-box { background: #ffe0e0; padding: 20px; border-radius: 10px; display: inline-block; }
+        .retry-btn { background: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="error-box">
+        <h2>😢 {{ message }}</h2>
+        <a class="retry-btn" href="{{ request.referrer or url_for('main.index') }}">🔁 Try Again</a>
+    </div>
+</body>
+</html>

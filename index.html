@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dog Gallery</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(to bottom, #f9f9f9, #e0e0e0);
+    }
+
+    .dark-mode {
+      background: #1a202c;
+      color: #f7fafc;
+    }
+
+    .dark-mode a {
+      color: #90cdf4;
+    }
+
+    .dark-mode .bg-white {
+      background-color: #2d3748;
+    }
+
+    .dark-mode .text-gray-800 {
+      color: #f7fafc;
+    }
+
+    .dark-mode .text-gray-700 {
+      color: #e2e8f0;
+    }
+
+    .zoomable {
+      transition: transform 0.2s;
+      cursor: zoom-in;
+    }
+
+    .zoomable:active {
+      transform: scale(2);
+      z-index: 999;
+    }
+
+    #loading-spinner {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+    }
+
+    #toast {
+      transition: all 0.3s ease-in-out;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      display: none;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<h1 class="text-3xl font-bold text-gray-800 mb-4">Dog Gallery</h1>
+<button
+  type="button"
+  onclick="window.location.href='{{ url_for('main.fetch_new_dogs') }}'"
+  class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
+>
+  Fetch New Dogs
+</button>
+<button id="toggle-dark" class="ml-4 px-3 py-1 bg-gray-800 text-white rounded">🌙Dark Mode</button>
+
+<!-- Filter & Sort -->
+<form method="get" class="my-4 flex flex-wrap gap-4 items-center">
+  <label>
+    Filter:
+    <select name="filter" class="ml-2 border rounded px-2 py-1">
+      <option value="all">All Breeds</option>
+      <option value="liked">Liked Breeds</option>
+      <option value="recent">Recently Viewed</option>
+    </select>
+  </label>
+
+  <label>
+    Sort:
+    <select name="sort" class="ml-2 border rounded px-2 py-1">
+      <option value="az">A - Z</option>
+      <option value="za">Z - A</option>
+      <option value="likes">Most Liked</option>
+    </select>
+  </label>
+
+  <button type="submit" class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
+    Apply
+  </button>
+</form>
+
+<!-- Loading Spinner -->
+<div id="loading-spinner">
+  <img src="{{ url_for('static', filename='spinner.gif') }}" alt="Loading..." />
+</div>
+
+<!-- Gallery Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-4">
+  {% for dog in dogs %}
+  <div class="block transition transform hover:scale-105 cursor-pointer" onclick="openModal('{{ dog[2] }}', '{{ dog[1] }}')">
+    <div class="bg-white rounded-lg shadow hover:shadow-lg overflow-hidden">
+      <img src="{{ dog[1] }}" alt="Dog" class="w-full h-48 object-cover zoomable" />
+      <div class="p-4 text-center">
+        <p class="font-semibold text-lg capitalize">{{ dog[2] }}</p>
+        <p>❤️ {{ dog[3] }} | 👁️ {{ dog[4] }}</p>
+        <button onclick="event.stopPropagation(); likeDog({{ dog[0] }})" class="text-red-500 hover:text-red-700 mt-2">❤️ Like</button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Recently Viewed Breeds -->
+<h2 class="text-2xl font-semibold mt-8 mb-4">Recently Viewed Breeds</h2>
+<div id="recentBreeds" class="flex overflow-x-auto gap-4 pb-4"></div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded hidden z-50"></div>
+
+<!-- Modal for breed detail -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span id="closeModal" class="text-gray-600 text-lg cursor-pointer float-right">&times;</span>
+    <h2 id="modalBreed" class="text-2xl font-bold mb-2"></h2>
+    <img id="modalImage" class="w-full rounded" alt="Breed Image">
+    <a id="modalLink" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" href="#">More Info</a>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script>
+  document.getElementById("toggle-dark").onclick = () => {
+    document.body.classList.toggle("dark-mode");
+    localStorage.setItem("dark", document.body.classList.contains("dark-mode"));
+  };
+
+  if (localStorage.getItem("dark") === "true") {
+    document.body.classList.add("dark-mode");
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const spinner = document.getElementById('loading-spinner');
+    document.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        spinner.style.display = 'block';
+      });
+    });
+  });
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.remove("hidden");
+    setTimeout(() => {
+      toast.classList.add("hidden");
+    }, 3000);
+  }
+
+  function likeDog(id) {
+    fetch(`/like/${id}`).then(() => showToast("You liked this dog!"));
+  }
+
+  fetch('/viewed')
+    .then(res => res.json())
+    .then(breeds => {
+      const container = document.getElementById('recentBreeds');
+      breeds.forEach(breed => {
+        const card = document.createElement('div');
+        card.className = 'recent-card';
+        card.innerHTML = `
+          <a href="/breed/${breed}" class="block">
+            <img src="https://dog.ceo/api/breed/${breed}/images/random" class="w-32 h-24 object-cover rounded" alt="${breed}" />
+            <p class="capitalize text-center mt-1">${breed}</p>
+          </a>
+        `;
+        container.appendChild(card);
+      });
+    });
+
+  function openModal(breed, imageUrl) {
+    document.getElementById('modalBreed').innerText = breed.charAt(0).toUpperCase() + breed.slice(1);
+    document.getElementById('modalImage').src = imageUrl;
+    document.getElementById('modalLink').href = `/breed/${breed}`;
+    document.getElementById('modal').style.display = 'flex';
+  }
+
+  document.getElementById('closeModal').onclick = function () {
+    document.getElementById('modal').style.display = 'none';
+  };
+
+  window.onclick = function(event) {
+    if (event.target == document.getElementById('modal')) {
+      document.getElementById('modal').style.display = 'none';
+    }
+  }
+</script>
+
+</body>
+</html>
